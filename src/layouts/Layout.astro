@@ -60,7 +60,13 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || "https://thespeec
     />
   </head>
   <body class="bg-canvas text-gray-800 font-sans selection:bg-brand-500 selection:text-white min-h-screen flex flex-col relative overflow-x-hidden">
-    <!-- Ambient full-site DotPattern background and glow -->
+    <!-- Top Scroll Progress Indicator -->
+    <div
+      id="scroll-progress-bar"
+      class="fixed top-0 left-0 h-[3px] bg-gradient-to-r from-brand-500 via-purple-500 to-brand-600 z-[100] transition-all duration-75 w-0 pointer-events-none shadow-xs"
+    ></div>
+
+    <!-- Ambient full-site DotPattern background and dynamic animated glow -->
     <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
       <DotPattern
         width={20}
@@ -70,8 +76,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || "https://thespeec
         cr={1}
         className="fill-neutral-400/40 [mask-image:radial-gradient(ellipse_at_top,white_50%,transparent_95%)]"
       />
-      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-brand-500/5 blur-[130px] rounded-full"></div>
-      <div class="absolute top-[40%] right-[-100px] w-[500px] h-[500px] bg-purple-500/5 blur-[150px] rounded-full"></div>
+      <div class="absolute -top-20 left-1/2 -translate-x-1/2 w-[850px] h-[450px] bg-gradient-to-br from-brand-500/10 via-purple-500/5 to-transparent blur-[140px] rounded-full animate-glow-pulse"></div>
+      <div class="absolute top-[35%] -right-24 w-[550px] h-[550px] bg-gradient-to-tl from-purple-500/10 via-brand-500/5 to-transparent blur-[160px] rounded-full animate-float-slow"></div>
+      <div class="absolute bottom-[20%] -left-24 w-[480px] h-[480px] bg-gradient-to-tr from-brand-400/10 to-transparent blur-[150px] rounded-full animate-float-reverse"></div>
     </div>
 
     <!-- Navigation -->
@@ -89,7 +96,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || "https://thespeec
     <button
       id="back-to-top"
       aria-label="Back to top"
-      class="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-white border border-gray-200 text-gray-600 hover:text-brand-600 hover:border-brand-300 hover:bg-gray-50 transition-all duration-300 shadow-lg opacity-0 translate-y-4 pointer-events-none"
+      class="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-white/90 backdrop-blur-md border border-gray-200 text-gray-600 hover:text-brand-600 hover:border-brand-300 hover:bg-white hover:scale-110 active:scale-95 transition-all duration-300 shadow-lg hover:shadow-brand-500/10 opacity-0 translate-y-4 pointer-events-none"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
@@ -129,6 +136,17 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || "https://thespeec
       .revealed {
         opacity: 1 !important;
         transform: translate(0, 0) scale(1) !important;
+      }
+
+      /* Card Hover Lift & Glow Dynamics */
+      .group, .team-card {
+        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease;
+      }
+
+      /* Badge Shimmer Reflection */
+      .badge-shimmer {
+        background-size: 200% 100%;
+        animation: shimmer 3s infinite linear;
       }
 
       /* Respect user preference for reduced motion */
@@ -215,19 +233,30 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || "https://thespeec
         initScrollReveal();
       }
 
-      // Back to top button logic
+      // Scroll Progress Bar & Back to top button logic
+      const progressBar = document.getElementById('scroll-progress-bar');
       const backToTopBtn = document.getElementById('back-to-top');
-      if (backToTopBtn) {
-        window.addEventListener('scroll', () => {
-          if (window.scrollY > 400) {
+
+      window.addEventListener('scroll', () => {
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+        if (progressBar && scrollHeight > 0) {
+          const progress = (scrollTop / scrollHeight) * 100;
+          progressBar.style.width = `${progress}%`;
+        }
+
+        if (backToTopBtn) {
+          if (scrollTop > 400) {
             backToTopBtn.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
             backToTopBtn.classList.add('opacity-100', 'translate-y-0');
           } else {
             backToTopBtn.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
             backToTopBtn.classList.remove('opacity-100', 'translate-y-0');
           }
-        }, { passive: true });
+        }
+      }, { passive: true });
 
+      if (backToTopBtn) {
         backToTopBtn.addEventListener('click', () => {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         });
