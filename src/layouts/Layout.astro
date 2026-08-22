@@ -96,7 +96,126 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || "https://thespeec
       </svg>
     </button>
 
+    <style is:global>
+      /* Scroll Reveal Base Animations */
+      .reveal {
+        opacity: 0;
+        transform: translateY(28px);
+        transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: opacity, transform;
+      }
+
+      .reveal-left {
+        opacity: 0;
+        transform: translateX(-32px);
+        transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: opacity, transform;
+      }
+
+      .reveal-right {
+        opacity: 0;
+        transform: translateX(32px);
+        transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: opacity, transform;
+      }
+
+      .reveal-scale {
+        opacity: 0;
+        transform: scale(0.95);
+        transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: opacity, transform;
+      }
+
+      .revealed {
+        opacity: 1 !important;
+        transform: translate(0, 0) scale(1) !important;
+      }
+
+      /* Respect user preference for reduced motion */
+      @media (prefers-reduced-motion: reduce) {
+        .reveal,
+        .reveal-left,
+        .reveal-right,
+        .reveal-scale {
+          opacity: 1 !important;
+          transform: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+
     <script>
+      function initScrollReveal() {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale').forEach((el) => {
+            el.classList.add('revealed');
+          });
+          return;
+        }
+
+        // Target content sections, cards, and grid child items for reveal
+        const autoRevealSelectors = [
+          'main section:not(.hero-section)',
+          'main .grid > div',
+          'main article',
+          'main .team-card'
+        ];
+
+        document.querySelectorAll(autoRevealSelectors.join(', ')).forEach((el) => {
+          if (
+            !el.classList.contains('reveal') &&
+            !el.classList.contains('reveal-left') &&
+            !el.classList.contains('reveal-right') &&
+            !el.classList.contains('reveal-scale') &&
+            !el.closest('nav')
+          ) {
+            el.classList.add('reveal');
+            
+            // Stagger siblings inside grids
+            const parent = el.parentElement;
+            if (parent && parent.classList.contains('grid')) {
+              const siblingIndex = Array.from(parent.children).indexOf(el);
+              const delay = (siblingIndex % 5) * 75;
+              if (delay > 0) {
+                (el as HTMLElement).style.transitionDelay = `${delay}ms`;
+              }
+            }
+          }
+        });
+
+        const observer = new IntersectionObserver(
+          (entries, obs) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('revealed');
+                obs.unobserve(entry.target);
+              }
+            });
+          },
+          {
+            threshold: 0.08,
+            rootMargin: '0px 0px -40px 0px'
+          }
+        );
+
+        document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale').forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          if (rect.top < window.innerHeight - 20 && rect.bottom > 0) {
+            el.classList.add('revealed');
+          } else {
+            observer.observe(el);
+          }
+        });
+      }
+
+      // Initialize
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initScrollReveal);
+      } else {
+        initScrollReveal();
+      }
+
+      // Back to top button logic
       const backToTopBtn = document.getElementById('back-to-top');
       if (backToTopBtn) {
         window.addEventListener('scroll', () => {
@@ -107,7 +226,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || "https://thespeec
             backToTopBtn.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
             backToTopBtn.classList.remove('opacity-100', 'translate-y-0');
           }
-        });
+        }, { passive: true });
 
         backToTopBtn.addEventListener('click', () => {
           window.scrollTo({ top: 0, behavior: 'smooth' });
